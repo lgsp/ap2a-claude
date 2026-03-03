@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MP2I — 4.1 Algorithmes probabilistes &amp; d'approximation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Spectral:ital,wght@0,400;0,600;1,400&family=Barlow+Condensed:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #131920;
+    --bg3: #1a2230;
+    --border: #243040;
+    --accent: #a78bfa;      /* violet — couleur signature de ce module */
+    --accent2: #7eb8f7;
+    --accent3: #f7c94a;
+    --accent4: #4af2a1;
+    --text: #c9d8ec;
+    --text-dim: #5a7290;
+    --c: #f0875a;
+    --ocaml: #7eb8f7;
+    --tag-bg: rgba(167,139,250,0.08);
+    --tag-border: rgba(167,139,250,0.25);
+    --mono: 'DM Mono', monospace;
+    --serif: 'Spectral', serif;
+    --cond: 'Barlow Condensed', sans-serif;
+    --radius: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--serif); font-size: 17px; line-height: 1.65; min-height: 100vh; }
+
+  #progress-bar { position: fixed; top: 0; left: 0; height: 5px; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); z-index: 1000; transition: width .2s; box-shadow: 0 0 12px var(--accent); }
+
+  header { background: linear-gradient(135deg, #0d1117 0%, #160f2a 100%); border-bottom: 1px solid var(--border); padding: 3.5rem 2rem 2.5rem; text-align: center; position: relative; overflow: hidden; }
+  header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(167,139,250,0.07), transparent); pointer-events: none; }
+  .breadcrumb { font-family: var(--cond); font-size: .8rem; letter-spacing: .12em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 1rem; }
+  .breadcrumb a { color: var(--accent2); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-family: var(--cond); font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; letter-spacing: -.01em; color: #e8f4ff; line-height: 1.1; margin-bottom: .6rem; }
+  h1 em { font-style: italic; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { font-family: var(--serif); font-size: 1.05rem; color: var(--text-dim); font-style: italic; margin-bottom: 1.5rem; }
+
+  .pills { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
+  .pill { font-family: var(--mono); font-size: .72rem; padding: .25rem .75rem; border-radius: 20px; border: 1px solid; letter-spacing: .06em; }
+  .pill-s1 { color: var(--accent4); border-color: rgba(74,242,161,.3); background: rgba(74,242,161,.05); }
+  .pill-s2 { color: var(--accent2); border-color: rgba(126,184,247,.3); background: rgba(126,184,247,.05); }
+  .pill-c  { color: var(--c); border-color: rgba(240,135,90,.3); background: rgba(240,135,90,.05); }
+  .pill-ml { color: var(--ocaml); border-color: rgba(126,184,247,.3); background: rgba(126,184,247,.05); }
+  .pill-proba { color: var(--accent); border-color: rgba(167,139,250,.3); background: rgba(167,139,250,.05); }
+
+  nav.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: .75rem; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 0; }
+  .nav-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: .75rem 1rem; cursor: pointer; transition: border-color .2s, background .2s; text-align: center; }
+  .nav-card:hover { border-color: var(--accent); background: rgba(167,139,250,.04); }
+  .nav-card .nc-num { font-family: var(--mono); font-size: .7rem; color: var(--accent); letter-spacing: .1em; display: block; margin-bottom: .2rem; }
+  .nav-card .nc-title { font-family: var(--cond); font-size: .85rem; font-weight: 500; color: var(--text); line-height: 1.2; }
+  .view-counter { font-family: var(--mono); font-size: .75rem; color: var(--text-dim); text-align: right; padding: .5rem 1.5rem 0; max-width: 860px; margin: 0 auto; }
+  #seen-count { color: var(--accent); }
+
+  main { max-width: 860px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+  .section { border: 1px solid var(--border); border-radius: 10px; background: var(--bg2); margin-top: 2rem; overflow: hidden; transition: border-color .3s; }
+  .section.seen { border-left: 3px solid var(--accent); }
+  .sec-header { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; transition: background .2s; }
+  .sec-header:hover { background: rgba(255,255,255,.02); }
+  .sec-header.open { border-bottom-color: var(--border); }
+  .sec-num { font-family: var(--mono); font-size: .75rem; color: var(--accent); background: var(--tag-bg); border: 1px solid var(--tag-border); padding: .2rem .6rem; border-radius: 4px; flex-shrink: 0; }
+  .sec-title { font-family: var(--cond); font-size: 1.1rem; font-weight: 500; color: #d4e8ff; flex: 1; }
+  .sec-arrow { font-size: .75rem; color: var(--text-dim); transition: transform .3s; }
+  .sec-arrow.open { transform: rotate(180deg); }
+  .sec-body { padding: 1.5rem; display: none; }
+  .sec-body.open { display: block; }
+
+  h2 { font-family: var(--cond); font-weight: 700; font-size: 1.4rem; color: var(--accent); letter-spacing: .03em; margin-bottom: .75rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+  h3 { font-family: var(--cond); font-weight: 500; font-size: 1.1rem; color: var(--accent2); margin: 1.2rem 0 .5rem; }
+  h4 { font-family: var(--mono); font-size: .85rem; color: var(--c); letter-spacing: .05em; margin: 1rem 0 .4rem; text-transform: uppercase; }
+  p { margin-bottom: .8rem; }
+  strong { color: #e0eecc; font-weight: 600; }
+  em { color: var(--accent3); font-style: italic; }
+  code { font-family: var(--mono); font-size: .82em; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 3px; padding: .1em .4em; color: var(--c); }
+  ul { margin: .5rem 0 .8rem 1.2rem; }
+  ul li { margin-bottom: .3rem; }
+
+  .callout { border-left: 3px solid var(--accent); background: rgba(167,139,250,.04); padding: .75rem 1rem; border-radius: 0 var(--radius) var(--radius) 0; margin: 1rem 0; font-size: .92rem; }
+  .callout-warn { border-left-color: var(--accent3); background: rgba(247,201,74,.04); }
+  .callout-info { border-left-color: var(--accent2); background: rgba(126,184,247,.04); }
+  .callout-green { border-left-color: var(--accent4); background: rgba(74,242,161,.04); }
+  .callout-title { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: .3rem; }
+  .callout-warn .callout-title { color: var(--accent3); }
+  .callout-info .callout-title { color: var(--accent2); }
+  .callout-green .callout-title { color: var(--accent4); }
+
+  .tbl-wrap { overflow-x: auto; margin: 1rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  th { background: var(--bg3); color: var(--accent); font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; padding: .6rem 1rem; text-align: left; border-bottom: 2px solid var(--border); }
+  td { padding: .55rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.015); }
+  .ok { color: var(--accent4); font-family: var(--mono); }
+  .warn { color: var(--accent3); font-family: var(--mono); }
+  .bad { color: #f77e7e; font-family: var(--mono); }
+
+  /* ── VIZ ── */
+  .viz-tabs { display: flex; gap: .3rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .viz-tab { font-family: var(--mono); font-size: .75rem; padding: .3rem .85rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text-dim); cursor: pointer; transition: all .15s; }
+  .viz-tab.active { border-color: var(--accent); color: var(--accent); background: var(--tag-bg); }
+  .viz-panel { display: none; }
+  .viz-panel.active { display: block; }
+
+  .canvas-wrap { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin: 1rem 0; overflow: hidden; }
+  canvas { display: block; max-width: 100%; }
+  .viz-info { font-family: var(--mono); font-size: .78rem; color: var(--text-dim); margin-top: .6rem; padding: .5rem .75rem; background: var(--bg3); border-radius: var(--radius); min-height: 2rem; }
+
+  /* stat bars */
+  .stat-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .4rem; font-family: var(--mono); font-size: .78rem; }
+  .stat-label { color: var(--text-dim); min-width: 140px; }
+  .stat-bar-wrap { flex: 1; background: var(--border); border-radius: 3px; height: 8px; overflow: hidden; }
+  .stat-bar { height: 100%; border-radius: 3px; transition: width .4s; }
+  .stat-val { color: var(--accent3); min-width: 60px; text-align: right; }
+
+  /* ── BUTTONS ── */
+  .btn { font-family: var(--mono); font-size: .78rem; padding: .35rem .85rem; border-radius: var(--radius); border: 1px solid; cursor: pointer; transition: all .15s; letter-spacing: .04em; }
+  .btn-purple { color: var(--accent); border-color: rgba(167,139,250,.4); background: rgba(167,139,250,.07); }
+  .btn-purple:hover { background: rgba(167,139,250,.15); }
+  .btn-green { color: var(--accent4); border-color: rgba(74,242,161,.4); background: rgba(74,242,161,.07); }
+  .btn-green:hover { background: rgba(74,242,161,.15); }
+  .btn-blue { color: var(--accent2); border-color: rgba(126,184,247,.4); background: rgba(126,184,247,.07); }
+  .btn-blue:hover { background: rgba(126,184,247,.15); }
+  .btn-yellow { color: var(--accent3); border-color: rgba(247,201,74,.4); background: rgba(247,201,74,.07); }
+  .btn-yellow:hover { background: rgba(247,201,74,.15); }
+  .btn-dim { color: var(--text-dim); border-color: var(--border); background: transparent; }
+  .btn-dim:hover { color: var(--text); border-color: var(--text-dim); }
+  .ctrl-row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin-bottom: .75rem; }
+
+  /* slider */
+  .slider-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; font-family: var(--mono); font-size: .8rem; }
+  .slider-row label { color: var(--text-dim); min-width: 120px; }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+  .slider-val { color: var(--accent3); min-width: 50px; }
+
+  /* ── CODE ── */
+  .lang-tabs { display: flex; gap: 0; margin: 1rem 0 0; border-bottom: 1px solid var(--border); }
+  .lang-tab { font-family: var(--mono); font-size: .78rem; padding: .5rem 1.1rem; cursor: pointer; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: var(--text-dim); background: transparent; margin-bottom: -1px; transition: all .15s; }
+  .lang-tab.c-tab.active { color: var(--c); border-color: var(--border); border-bottom-color: var(--bg2); background: var(--bg2); }
+  .lang-tab.ml-tab.active { color: var(--ocaml); border-color: var(--border); border-bottom-color: var(--bg2); background: var(--bg2); }
+  .lang-pane { display: none; }
+  .lang-pane.active { display: block; }
+
+  .code-block { margin: 1rem 0; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+  .code-header { display: flex; align-items: center; gap: .6rem; padding: .55rem 1rem; background: var(--bg3); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .code-lang { font-family: var(--mono); font-size: .7rem; padding: .15rem .55rem; border-radius: 3px; text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
+  .lang-c { color: var(--c); background: rgba(240,135,90,.12); border: 1px solid rgba(240,135,90,.25); }
+  .lang-ocaml { color: var(--ocaml); background: rgba(126,184,247,.12); border: 1px solid rgba(126,184,247,.25); }
+  .code-filename { font-family: var(--mono); font-size: .75rem; color: var(--text-dim); flex: 1; }
+  .code-actions { display: flex; gap: .4rem; margin-left: auto; }
+  .code-editor { font-family: var(--mono); font-size: .82rem; background: var(--bg); color: var(--text); border: none; outline: none; resize: vertical; width: 100%; padding: 1rem; line-height: 1.6; tab-size: 2; min-height: 240px; caret-color: var(--accent); }
+  .code-output { border-top: 1px solid var(--border); background: #0a0f18; padding: .75rem 1rem; font-family: var(--mono); font-size: .8rem; color: #a0c8a0; white-space: pre-wrap; min-height: 2.5rem; display: none; }
+  .code-output.visible { display: block; }
+
+  /* ── QCM ── */
+  .qcm-wrap { font-size: .95rem; }
+  .qcm-progress { font-family: var(--mono); font-size: .72rem; color: var(--text-dim); margin-bottom: 1rem; }
+  .qcm-q { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
+  .qcm-q p { margin-bottom: .75rem; font-size: .97rem; }
+  .qcm-option { display: flex; align-items: center; gap: .7rem; padding: .45rem .75rem; border-radius: var(--radius); cursor: pointer; margin-bottom: .35rem; border: 1px solid var(--border); background: var(--bg); transition: all .15s; font-size: .9rem; }
+  .qcm-option:hover { border-color: var(--accent2); background: rgba(126,184,247,.05); }
+  .qcm-option.correct { border-color: var(--accent4); background: rgba(74,242,161,.08); color: var(--accent4); }
+  .qcm-option.wrong { border-color: #f77e7e; background: rgba(247,126,126,.08); color: #f77e7e; }
+  .qcm-option input { accent-color: var(--accent4); }
+  .qcm-explain { font-size: .85rem; font-style: italic; color: var(--text-dim); margin-top: .5rem; padding: .5rem .75rem; background: var(--bg); border-left: 3px solid var(--border); border-radius: 0 3px 3px 0; }
+  .qcm-controls { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
+  .score-bar { height: 8px; border-radius: 4px; background: var(--border); margin: .5rem 0; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s; }
+
+  /* contact */
+  .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 1rem; margin-top: 1rem; }
+  .contact-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; text-align: center; }
+  .contact-icon { font-size: 1.5rem; display: block; margin-bottom: .4rem; }
+  .contact-title { font-family: var(--cond); font-weight: 500; color: var(--accent2); }
+  .contact-sub { font-size: .82rem; color: var(--text-dim); margin: .2rem 0 .6rem; }
+  .contact-card img { width: 110px; height: 110px; margin: .5rem auto; display: block; }
+  .contact-link { font-family: var(--mono); font-size: .73rem; color: var(--accent); text-decoration: none; }
+  .contact-link:hover { text-decoration: underline; }
+
+  /* result display */
+  .result-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: .75rem 1rem; font-family: var(--mono); font-size: .85rem; margin-top: .75rem; }
+  .result-box .rval { color: var(--accent3); font-size: 1.1rem; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<header>
+  <div class="breadcrumb">
+    <a href="#">MP2I / MPI — Informatique</a> ›
+    <a href="#">4. Algorithmique</a> ›
+    4.1 Algorithmes probabilistes &amp; d'approximation
+  </div>
+  <h1>Algorithmes <em>Probabilistes</em><br>&amp; d'Approximation</h1>
+  <p class="subtitle">Hasard contrôlé, résultats garantis en espérance — quand le déterminisme n'est plus optimal.</p>
+  <div class="pills">
+    <span class="pill pill-s2">S2</span>
+    <span class="pill pill-proba">Probabiliste</span>
+    <span class="pill pill-proba">Approximation</span>
+    <span class="pill pill-c">C99</span>
+    <span class="pill pill-ml">OCaml</span>
+  </div>
+</header>
+
+<nav class="cards">
+  <div class="nav-card" onclick="openSection(0)"><span class="nc-num">01</span><span class="nc-title">Programme officiel</span></div>
+  <div class="nav-card" onclick="openSection(1)"><span class="nc-num">02</span><span class="nc-title">Simulateurs interactifs</span></div>
+  <div class="nav-card" onclick="openSection(2)"><span class="nc-num">03</span><span class="nc-title">Cours — Rappels</span></div>
+  <div class="nav-card" onclick="openSection(3)"><span class="nc-num">04</span><span class="nc-title">Code C &amp; OCaml</span></div>
+  <div class="nav-card" onclick="openSection(4)"><span class="nc-num">05</span><span class="nc-title">Auto-évaluation</span></div>
+  <div class="nav-card" onclick="openSection(5)"><span class="nc-num">06</span><span class="nc-title">Contact</span></div>
+</nav>
+<div class="view-counter"><span id="seen-count">0</span> / 6 vus</div>
+
+<main>
+
+<!-- ══════════ 01 PROGRAMME ══════════ -->
+<div class="section" id="sec-0" data-idx="0">
+  <div class="sec-header" onclick="toggleSection(0)">
+    <span class="sec-num">01</span>
+    <span class="sec-title">Notions du programme officiel</span>
+    <span class="sec-arrow" id="arr-0">▼</span>
+  </div>
+  <div class="sec-body" id="body-0">
+    <p>Extrait exact du <strong>BO 2021</strong> — section <strong>4.1 Algorithmes probabilistes, algorithmes d'approximation</strong>.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Notion</th><th>Commentaires officiels</th><th>Période</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Algorithme probabiliste de type Las Vegas</strong></td>
+          <td>L'algorithme est toujours <em>correct</em> mais son temps d'exécution est aléatoire. Exemple : <strong>tri rapide randomisé</strong>. On calcule la complexité <em>en espérance</em>.</td>
+          <td><span class="pill pill-s2" style="font-size:.7rem">S2</span></td>
+        </tr>
+        <tr>
+          <td><strong>Algorithme probabiliste de type Monte-Carlo</strong></td>
+          <td>L'algorithme s'exécute en temps borné mais peut donner un résultat <em>incorrect</em> avec une faible probabilité. Exemple : <strong>estimation de π par la méthode de Monte-Carlo</strong>.</td>
+          <td><span class="pill pill-s2" style="font-size:.7rem">S2</span></td>
+        </tr>
+        <tr>
+          <td><strong>Algorithme d'approximation</strong></td>
+          <td>Pour les problèmes <em>NP-difficiles</em>, on cherche une solution <em>approchée</em> avec un <em>rapport d'approximation</em> garanti. Exemple : <strong>couverture par sommets</strong> (vertex cover), <strong>voyageur de commerce approché</strong> (si distances métriques).</td>
+          <td><span class="pill pill-s2" style="font-size:.7rem">S2</span></td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div class="callout">
+      <div class="callout-title">Point clé du programme</div>
+      Le BO distingue clairement <strong>Las Vegas</strong> (toujours correct, temps aléatoire) et <strong>Monte-Carlo</strong> (temps borné, résultat peut être erroné). La notion de <strong>rapport d'approximation</strong> est centrale pour les algorithmes d'approximation.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 02 SIMULATEURS ══════════ -->
+<div class="section" id="sec-1" data-idx="1">
+  <div class="sec-header" onclick="toggleSection(1)">
+    <span class="sec-num">02</span>
+    <span class="sec-title">Simulateurs interactifs</span>
+    <span class="sec-arrow" id="arr-1">▼</span>
+  </div>
+  <div class="sec-body" id="body-1">
+    <div class="viz-tabs">
+      <button class="viz-tab active" onclick="showViz('pi')">Monte-Carlo : π</button>
+      <button class="viz-tab" onclick="showViz('qsort')">Las Vegas : Tri rapide</button>
+      <button class="viz-tab" onclick="showViz('vc')">Approximation : Vertex Cover</button>
+    </div>
+
+    <!-- MONTE-CARLO PI -->
+    <div class="viz-panel active" id="vp-pi">
+      <p style="font-size:.9rem;margin-bottom:.75rem">On tire des points aléatoires dans le carré [0,1]². La proportion de points dans le quart de disque estime <strong>π/4</strong>.</p>
+      <div class="ctrl-row">
+        <div class="slider-row" style="flex:1;margin:0">
+          <label>Points par salve :</label>
+          <input type="range" id="pi-batch" min="10" max="2000" value="200" oninput="document.getElementById('pi-batch-val').textContent=this.value">
+          <span class="slider-val" id="pi-batch-val">200</span>
+        </div>
+        <button class="btn btn-purple" onclick="piStep()">▶ Tirer</button>
+        <button class="btn btn-blue" id="pi-auto-btn" onclick="piToggleAuto()">⟳ Auto</button>
+        <button class="btn btn-dim" onclick="piReset()">↺ Reset</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="pi-canvas" width="500" height="500" style="max-height:320px;object-fit:contain"></canvas>
+      </div>
+      <div class="result-box">
+        Estimation de π : <span class="rval" id="pi-val">—</span> &nbsp;|&nbsp;
+        Points dans le disque : <span id="pi-in">0</span> &nbsp;|&nbsp;
+        Total : <span id="pi-total">0</span> &nbsp;|&nbsp;
+        Erreur : <span id="pi-err" style="color:#f77e7e">—</span>
+      </div>
+      <div class="viz-info">Méthode Monte-Carlo : résultat <em>probabiliste</em> — plus on tire de points, plus l'estimation converge vers π. Convergence en O(1/√n).</div>
+    </div>
+
+    <!-- LAS VEGAS TRI RAPIDE -->
+    <div class="viz-panel" id="vp-qsort">
+      <p style="font-size:.9rem;margin-bottom:.75rem">Le pivot est choisi <strong>aléatoirement</strong>. L'algorithme est toujours correct ; sa complexité en espérance est <strong>O(n log n)</strong>.</p>
+      <div class="ctrl-row">
+        <div class="slider-row" style="flex:1;margin:0">
+          <label>Taille du tableau :</label>
+          <input type="range" id="qs-n" min="4" max="30" value="16" oninput="document.getElementById('qs-n-val').textContent=this.value;qsReset()">
+          <span class="slider-val" id="qs-n-val">16</span>
+        </div>
+        <button class="btn btn-purple" onclick="qsStart()">▶ Trier</button>
+        <button class="btn btn-dim" onclick="qsReset()">↺ Reset</button>
+        <button class="btn btn-dim" onclick="qsWorstCase()">⚠ Pire cas déterministe</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="qs-canvas" width="760" height="200"></canvas>
+      </div>
+      <div class="result-box" id="qs-info">Générez un tableau pour commencer.</div>
+      <div id="qs-stats" style="margin-top:.75rem"></div>
+      <div class="viz-info">Las Vegas : le résultat est <em>garanti correct</em>. Seule la durée varie selon les choix aléatoires.</div>
+    </div>
+
+    <!-- VERTEX COVER -->
+    <div class="viz-panel" id="vp-vc">
+      <p style="font-size:.9rem;margin-bottom:.75rem">L'algorithme glouton 2-approché pour la <strong>couverture par sommets</strong> : choisir une arête quelconque, ajouter ses deux extrémités à la couverture, retirer toutes les arêtes incidentes. Répéter.</p>
+      <div class="ctrl-row">
+        <button class="btn btn-purple" onclick="vcGenerate()">⊞ Nouveau graphe</button>
+        <button class="btn btn-yellow" onclick="vcStep()">→ Étape suivante</button>
+        <button class="btn btn-green" onclick="vcAll()">⏩ Tout exécuter</button>
+        <button class="btn btn-dim" onclick="vcReset()">↺ Reset</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="vc-canvas" width="600" height="320"></canvas>
+      </div>
+      <div class="result-box" id="vc-info">Générez un graphe pour commencer.</div>
+      <div class="viz-info">Garantie : la couverture obtenue a au plus <strong>2 × OPT</strong> sommets. C'est un algorithme d'approximation de ratio 2.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 03 COURS ══════════ -->
+<div class="section" id="sec-2" data-idx="2">
+  <div class="sec-header" onclick="toggleSection(2)">
+    <span class="sec-num">03</span>
+    <span class="sec-title">Cours — Rappels et définitions</span>
+    <span class="sec-arrow" id="arr-2">▼</span>
+  </div>
+  <div class="sec-body" id="body-2">
+
+    <h2>4.1.1 — Algorithmes probabilistes</h2>
+    <p>Un <strong>algorithme probabiliste</strong> utilise des tirages aléatoires dans son déroulement. Le comportement peut varier d'une exécution à l'autre sur la même entrée.</p>
+
+    <div class="callout callout-info" style="margin-bottom:.5rem">
+      <div class="callout-title">Las Vegas</div>
+      <strong>Résultat toujours correct.</strong> Le temps d'exécution est une variable aléatoire. On analyse la <em>complexité en espérance</em> E[T(n)].
+      <br><em>Exemple canonique : tri rapide randomisé (quicksort avec pivot aléatoire).</em>
+    </div>
+    <div class="callout callout-warn">
+      <div class="callout-title">Monte-Carlo</div>
+      <strong>Temps d'exécution borné.</strong> Le résultat peut être incorrect avec une probabilité ε (souvent faible et contrôlable). On peut répéter l'algorithme pour réduire la probabilité d'erreur.
+      <br><em>Exemple canonique : estimation de π, tests de primalité (Miller-Rabin).</em>
+    </div>
+
+    <div class="tbl-wrap" style="margin-top:1rem"><table>
+      <thead><tr><th>Propriété</th><th>Las Vegas</th><th>Monte-Carlo</th></tr></thead>
+      <tbody>
+        <tr><td>Résultat</td><td class="ok">Toujours correct</td><td class="warn">Peut être incorrect (prob. ε)</td></tr>
+        <tr><td>Temps</td><td class="warn">Variable aléatoire, borné en espérance</td><td class="ok">Toujours borné O(f(n))</td></tr>
+        <tr><td>Analyse</td><td>Complexité <em>en espérance</em></td><td>Probabilité d'erreur ε</td></tr>
+        <tr><td>Réduction erreur</td><td>N/A (déjà correct)</td><td>Répéter k fois → ε<sup>k</sup></td></tr>
+        <tr><td>Exemple</td><td>Quicksort, Randomized-Select</td><td>Monte-Carlo π, Miller-Rabin</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Tri rapide randomisé (Las Vegas)</h3>
+    <p>Le <strong>quicksort</strong> classique a une complexité O(n²) au pire cas (tableau déjà trié + pivot = premier élément). En choisissant le pivot <em>uniformément au hasard</em> :</p>
+    <div class="callout callout-green">
+      <div class="callout-title">Théorème (hors démonstration au programme)</div>
+      La complexité <strong>en espérance</strong> du tri rapide randomisé est <strong>O(n log n)</strong>, quelle que soit l'entrée. Le pire cas O(n²) devient un événement de probabilité exponentiellement faible.
+    </div>
+
+    <h3>Estimation de π (Monte-Carlo)</h3>
+    <p>On tire n points (x, y) uniformément dans [0,1]². La probabilité qu'un point soit dans le quart de disque unité est π/4. Si k points tombent dans le disque :</p>
+    <div class="callout callout-warn">
+      <div class="callout-title">Estimateur</div>
+      <code>π̂ = 4 × k/n</code><br>
+      Par la loi des grands nombres, <code>π̂ → π</code> quand n → ∞.<br>
+      Précision : l'erreur est en <strong>O(1/√n)</strong> — pour gagner un chiffre décimal, il faut multiplier n par 100.
+    </div>
+
+    <h2 style="margin-top:1.5rem">4.1.2 — Algorithmes d'approximation</h2>
+    <p>Pour les problèmes <strong>NP-difficiles</strong>, on ne sait pas calculer la solution optimale en temps polynomial (sous l'hypothèse P ≠ NP). Les <em>algorithmes d'approximation</em> fournissent une solution <em>approchée</em> en temps polynomial avec une <em>garantie de qualité</em>.</p>
+
+    <div class="callout">
+      <div class="callout-title">Définition — Rapport d'approximation</div>
+      Un algorithme est <em>ρ-approché</em> si pour toute instance, il produit une solution A(I) telle que :<br>
+      <code>A(I) / OPT(I) ≤ ρ</code> (minimisation) &nbsp;ou&nbsp; <code>A(I) / OPT(I) ≥ 1/ρ</code> (maximisation)<br>
+      Plus ρ est proche de 1, meilleure est l'approximation.
+    </div>
+
+    <h3>Couverture par sommets (Vertex Cover) — ratio 2</h3>
+    <p>Un <strong>vertex cover</strong> d'un graphe G = (V, E) est un ensemble C ⊆ V tel que toute arête a au moins une extrémité dans C. Trouver le plus petit vertex cover est NP-difficile.</p>
+    <div class="callout callout-green">
+      <div class="callout-title">Algorithme 2-approché (glouton)</div>
+      C ← ∅<br>
+      Tant que E non vide :<br>
+      &nbsp;&nbsp;&nbsp;Choisir une arête (u, v) quelconque<br>
+      &nbsp;&nbsp;&nbsp;Ajouter u et v à C<br>
+      &nbsp;&nbsp;&nbsp;Retirer de E toutes les arêtes incidentes à u ou v<br>
+      Retourner C
+    </div>
+    <div class="callout callout-info">
+      <div class="callout-title">Preuve du ratio 2</div>
+      Soit M l'ensemble des arêtes choisies (un couplage). Chaque arête de M contribue 2 sommets à C, donc |C| = 2|M|. Or tout vertex cover optimal doit couvrir chaque arête de M avec au moins un sommet, donc OPT ≥ |M|. D'où <strong>|C| ≤ 2 × OPT</strong>.
+    </div>
+
+    <h3>Voyageur de commerce métrique (approché)</h3>
+    <p>Dans le cas où les distances vérifient l'<em>inégalité triangulaire</em>, on peut approcher le TSP optimal avec un ratio 2 (algo de Christofides : 3/2 — hors programme). L'idée de base :</p>
+    <ul>
+      <li>Calculer un <strong>arbre couvrant minimal</strong> (ACM) — O(n² ou n log n)</li>
+      <li>Effectuer un <strong>parcours DFS</strong> de l'ACM</li>
+      <li>Obtenir un cycle hamiltonien approché — <strong>ratio ≤ 2 × OPT</strong></li>
+    </ul>
+    <div class="callout callout-warn">
+      <div class="callout-title">Attention</div>
+      Sans l'inégalité triangulaire (TSP général), il est prouvé qu'aucun algorithme polynomial n'approxime le TSP à un ratio constant, sauf si P = NP.
+    </div>
+
+    <div class="tbl-wrap" style="margin-top:1rem"><table>
+      <thead><tr><th>Problème</th><th>Complexité exacte</th><th>Algo approché</th><th>Ratio</th></tr></thead>
+      <tbody>
+        <tr><td>Vertex Cover</td><td class="bad">NP-difficile</td><td>Glouton arêtes</td><td class="warn">2</td></tr>
+        <tr><td>TSP métrique</td><td class="bad">NP-difficile</td><td>ACM + DFS</td><td class="warn">2</td></tr>
+        <tr><td>Bin Packing</td><td class="bad">NP-difficile</td><td>First Fit Decreasing</td><td class="warn">11/9 + ε</td></tr>
+        <tr><td>Set Cover</td><td class="bad">NP-difficile</td><td>Glouton</td><td class="warn">ln(n)+1</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══════════ 04 CODE ══════════ -->
+<div class="section" id="sec-3" data-idx="3">
+  <div class="sec-header" onclick="toggleSection(3)">
+    <span class="sec-num">04</span>
+    <span class="sec-title">Exemples de code en C et OCaml</span>
+    <span class="sec-arrow" id="arr-3">▼</span>
+  </div>
+  <div class="sec-body" id="body-3">
+
+    <h2>① Tri rapide randomisé (Las Vegas)</h2>
+    <div class="lang-tabs">
+      <button class="lang-tab c-tab active" onclick="switchLang(this,'c1')">C99</button>
+      <button class="lang-tab ml-tab" onclick="switchLang(this,'c1')">OCaml</button>
+    </div>
+    <div class="lang-pane active" id="c1-c">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang lang-c">C99</span>
+          <span class="code-filename">quicksort_lv.c</span>
+          <div class="code-actions">
+            <button class="btn btn-green" onclick="runCode(this)">▶ Simuler</button>
+            <button class="btn btn-blue" onclick="downloadCode(this,'.c')">↓ .c</button>
+            <button class="btn btn-dim" onclick="resetCode(this)">↺ Reset</button>
+          </div>
+        </div>
+        <textarea class="code-editor" spellcheck="false">
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+/* ── Tri rapide randomisé — algorithme Las Vegas ──
+ *
+ * Invariant de boucle : après partition, le pivot est à sa position finale.
+ * Précondition  : tab != NULL, 0 <= gauche <= droite < n
+ * Postcondition : tab[gauche..droite] est trié
+ *
+ * Complexité :
+ *   - Pire cas (déterministe)   : O(n²) avec pivot = premier élément
+ *   - En espérance (randomisé)  : O(n log n)  ← Las Vegas
+ *   - Mémoire auxiliaire        : O(log n) en espérance (pile de récursion)
+ */
+
+long long nb_comparaisons = 0;  /* compteur global pour les stats */
+
+void echanger(int *a, int *b) { int t = *a; *a = *b; *b = t; }
+
+/* Partition de Lomuto : place le pivot à sa position finale,
+ * retourne son indice.
+ * Invariant : après appel, tab[p] = pivot,
+ *   tout tab[gauche..p-1] <= pivot <= tout tab[p+1..droite] */
+int partition(int *tab, int gauche, int droite) {
+    /* PIVOT ALÉATOIRE ← cœur de la randomisation Las Vegas */
+    int idx_pivot = gauche + rand() % (droite - gauche + 1);
+    echanger(&tab[idx_pivot], &tab[droite]);  /* mettre le pivot à droite */
+    int pivot = tab[droite];
+    int i = gauche - 1;
+    for (int j = gauche; j < droite; j++) {
+        nb_comparaisons++;
+        if (tab[j] <= pivot) { i++; echanger(&tab[i], &tab[j]); }
+    }
+    echanger(&tab[i+1], &tab[droite]);
+    return i + 1;
+}
+
+void quicksort(int *tab, int gauche, int droite) {
+    if (gauche >= droite) return;
+    int p = partition(tab, gauche, droite);
+    quicksort(tab, gauche, p - 1);
+    quicksort(tab, p + 1, droite);
+}
+
+/* Version déterministe (premier pivot) — pour comparaison */
+int partition_det(int *tab, int g, int d) {
+    int pivot = tab[d]; int i = g - 1;
+    for (int j = g; j < d; j++) {
+        nb_comparaisons++;
+        if (tab[j] <= pivot) { i++; echanger(&tab[i], &tab[j]); }
+    }
+    echanger(&tab[i+1], &tab[d]); return i+1;
+}
+void quicksort_det(int *tab, int g, int d) {
+    if (g >= d) return;
+    int p = partition_det(tab, g, d);
+    quicksort_det(tab, g, p-1);
+    quicksort_det(tab, p+1, d);
+}
+
+void afficher(int *tab, int n) {
+    for (int i = 0; i < n; i++) printf("%d ", tab[i]);
+    printf("\n");
+}
+
+int main(void) {
+    srand((unsigned)time(NULL));
+    int n = 12;
+    int tab1[] = {5, 2, 9, 1, 7, 3, 8, 4, 6, 0, 11, 10};
+    int tab2[] = {5, 2, 9, 1, 7, 3, 8, 4, 6, 0, 11, 10};
+    /* Cas pathologique pour le déterministe : tableau déjà trié */
+    int tab3[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    int tab4[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+
+    printf("=== Tri rapide RANDOMISÉ (Las Vegas) ===\n");
+    printf("Avant : "); afficher(tab1, n);
+    nb_comparaisons = 0;
+    quicksort(tab1, 0, n-1);
+    printf("Après : "); afficher(tab1, n);
+    printf("Comparaisons : %lld\n\n", nb_comparaisons);
+
+    printf("=== Tri rapide DÉTERMINISTE (dernier élément) ===\n");
+    printf("Avant : "); afficher(tab2, n);
+    nb_comparaisons = 0;
+    quicksort_det(tab2, 0, n-1);
+    printf("Après : "); afficher(tab2, n);
+    printf("Comparaisons : %lld\n\n", nb_comparaisons);
+
+    printf("=== Cas pathologique : tableau TRIÉ (n=%d) ===\n", n);
+    printf("Randomisé  — comparaisons : ");
+    nb_comparaisons = 0; quicksort(tab3, 0, n-1);
+    printf("%lld  (O(n log n) en esp.)\n", nb_comparaisons);
+    printf("Déterministe — comparaisons : ");
+    nb_comparaisons = 0; quicksort_det(tab4, 0, n-1);
+    printf("%lld  (O(n²) = %d au pire)\n", nb_comparaisons, n*(n-1)/2);
+
+    return 0;
+}
+        </textarea>
+        <div class="code-output"></div>
+      </div>
+    </div>
+    <div class="lang-pane" id="c1-ml">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang lang-ocaml">OCaml</span>
+          <span class="code-filename">quicksort_lv.ml</span>
+          <div class="code-actions">
+            <button class="btn btn-green" onclick="runCode(this)">▶ Simuler</button>
+            <button class="btn btn-blue" onclick="downloadCode(this,'.ml')">↓ .ml</button>
+            <button class="btn btn-dim" onclick="resetCode(this)">↺ Reset</button>
+          </div>
+        </div>
+        <textarea class="code-editor" spellcheck="false">
+(* Tri rapide randomisé en OCaml — Las Vegas
+ *
+ * Version fonctionnelle sur des listes.
+ * Invariant : la partition respecte l'ordre relatif des éléments
+ *   par rapport au pivot.
+ * Complexité en espérance : O(n log n) grâce au pivot aléatoire.
+ *
+ * Note : en OCaml fonctionnel, on ne trie pas en place.
+ * Pour un tri en place, on utiliserait des tableaux (Array.sort).
+ *)
+
+let () = Random.self_init ()
+
+(* partition : 'a -> 'a list -> 'a list * 'a list
+ * Sépare une liste en deux : éléments < pivot et >= pivot *)
+let partition pivot lst =
+  List.fold_right
+    (fun x (inf, sup) ->
+       if x <= pivot then (x :: inf, sup)
+       else (inf, x :: sup))
+    lst ([], [])
+
+(* choisir_pivot : 'a list -> 'a
+ * Choisit uniformément un élément au hasard — cœur du Las Vegas *)
+let choisir_pivot lst =
+  let n = List.length lst in
+  let i = Random.int n in
+  List.nth lst i
+
+(* quicksort_lv : 'a list -> 'a list — O(n log n) en espérance *)
+let rec quicksort_lv = function
+  | [] -> []
+  | [x] -> [x]
+  | lst ->
+    let pivot = choisir_pivot lst in
+    (* Sépare les éléments strictement inférieurs et supérieurs au pivot *)
+    let inf, sup = partition pivot (List.filter (fun x -> x <> pivot) lst) in
+    (* Le pivot apparaît autant de fois qu'il y est dans lst *)
+    let nb_pivot = List.length lst - List.length inf - List.length sup in
+    quicksort_lv inf
+    @ List.init nb_pivot (fun _ -> pivot)
+    @ quicksort_lv sup
+
+(* Version déterministe : premier élément comme pivot *)
+let rec quicksort_det = function
+  | [] -> []
+  | [x] -> [x]
+  | pivot :: rest ->
+    let inf = List.filter (fun x -> x < pivot) rest in
+    let sup = List.filter (fun x -> x >= pivot) rest in
+    quicksort_det inf @ [pivot] @ quicksort_det sup
+
+let print_list l =
+  List.iter (fun x -> Printf.printf "%d " x) l;
+  print_newline ()
+
+let () =
+  let lst = [5; 2; 9; 1; 7; 3; 8; 4; 6; 0; 11; 10] in
+  Printf.printf "=== Tri rapide RANDOMISÉ (Las Vegas) ===\n";
+  Printf.printf "Avant : "; print_list lst;
+  let tri_lv = quicksort_lv lst in
+  Printf.printf "Après : "; print_list tri_lv;
+
+  Printf.printf "\n=== Tri rapide DÉTERMINISTE ===\n";
+  let tri_det = quicksort_det lst in
+  Printf.printf "Résultat : "; print_list tri_det;
+
+  Printf.printf "\n=== Cas pathologique : tableau trié ===\n";
+  let sorted = List.init 12 (fun i -> i) in
+  Printf.printf "Randomisé  : "; print_list (quicksort_lv sorted);
+  Printf.printf "Déterministe : "; print_list (quicksort_det sorted);
+  Printf.printf "(Le randomisé reste O(n log n) en espérance)\n"
+        </textarea>
+        <div class="code-output"></div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:1.5rem">② Estimation de π — Monte-Carlo</h2>
+    <div class="lang-tabs">
+      <button class="lang-tab c-tab active" onclick="switchLang(this,'c2')">C99</button>
+      <button class="lang-tab ml-tab" onclick="switchLang(this,'c2')">OCaml</button>
+    </div>
+    <div class="lang-pane active" id="c2-c">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang lang-c">C99</span>
+          <span class="code-filename">monte_carlo_pi.c</span>
+          <div class="code-actions">
+            <button class="btn btn-green" onclick="runCode(this)">▶ Simuler</button>
+            <button class="btn btn-blue" onclick="downloadCode(this,'.c')">↓ .c</button>
+            <button class="btn btn-dim" onclick="resetCode(this)">↺ Reset</button>
+          </div>
+        </div>
+        <textarea class="code-editor" spellcheck="false">
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+
+/* ── Estimation de π par la méthode de Monte-Carlo ──
+ *
+ * Principe : tirer n points (x, y) uniformément dans [0,1]²
+ * Un point est dans le quart de disque unité si x²+y² <= 1
+ * P(dans le disque) = π/4  →  π ≈ 4 × k/n
+ *
+ * C'est un algorithme Monte-Carlo :
+ *   - Temps d'exécution : O(n)  (borné)
+ *   - Résultat : approché, erreur ≈ O(1/√n)
+ *
+ * Précondition  : n > 0
+ * Postcondition : |estimation - π| ≈ 1/√n en espérance
+ */
+double estimer_pi(long long n) {
+    long long dans_disque = 0;
+    for (long long i = 0; i < n; i++) {
+        double x = (double)rand() / RAND_MAX;
+        double y = (double)rand() / RAND_MAX;
+        /* Invariant : x² + y² <= 1  ⟺  le point est dans le quart de disque */
+        if (x*x + y*y <= 1.0) dans_disque++;
+    }
+    return 4.0 * (double)dans_disque / (double)n;
+}
+
+int main(void) {
+    srand((unsigned)time(NULL));
+    const double PI_REF = 3.14159265358979323846;
+
+    printf("%-12s %-14s %-12s\n", "n", "Estimation π", "Erreur abs.");
+    printf("%-12s %-14s %-12s\n", "───────────", "─────────────", "───────────");
+
+    long long ns[] = {100, 1000, 10000, 100000, 1000000, 10000000};
+    int nb = sizeof(ns)/sizeof(ns[0]);
+
+    for (int i = 0; i < nb; i++) {
+        double pi_est = estimer_pi(ns[i]);
+        double err = fabs(pi_est - PI_REF);
+        printf("%-12lld %-14.8f %-12.8f\n", ns[i], pi_est, err);
+    }
+
+    printf("\nPI_REF = %.10f\n", PI_REF);
+    printf("Note : convergence en O(1/√n) — pour 1 chiffre de plus, n × 100.\n");
+    return 0;
+}
+        </textarea>
+        <div class="code-output"></div>
+      </div>
+    </div>
+    <div class="lang-pane" id="c2-ml">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang lang-ocaml">OCaml</span>
+          <span class="code-filename">monte_carlo_pi.ml</span>
+          <div class="code-actions">
+            <button class="btn btn-green" onclick="runCode(this)">▶ Simuler</button>
+            <button class="btn btn-blue" onclick="downloadCode(this,'.ml')">↓ .ml</button>
+            <button class="btn btn-dim" onclick="resetCode(this)">↺ Reset</button>
+          </div>
+        </div>
+        <textarea class="code-editor" spellcheck="false">
+(* Estimation de π par Monte-Carlo en OCaml
+ *
+ * Algorithme Monte-Carlo : temps borné O(n), résultat approché.
+ * Convergence : erreur en O(1/√n) par la loi des grands nombres.
+ *)
+let () = Random.self_init ()
+
+(* estimer_pi : int -> float — O(n)
+ * Précondition : n > 0
+ * Postcondition : résultat ≈ π, erreur ≈ O(1/√n) *)
+let estimer_pi n =
+  let dans_disque = ref 0 in
+  for _ = 1 to n do
+    let x = Random.float 1.0 in
+    let y = Random.float 1.0 in
+    (* Invariant : x² + y² <= 1  ⟺  point dans le quart de disque *)
+    if x *. x +. y *. y <= 1.0 then incr dans_disque
+  done;
+  4.0 *. float_of_int !dans_disque /. float_of_int n
+
+let pi_ref = 4.0 *. atan 1.0  (* valeur exacte via arctan *)
+
+let () =
+  Printf.printf "%-12s %-14s %-12s\n" "n" "Estimation π" "Erreur abs.";
+  Printf.printf "%-12s %-14s %-12s\n" "───────────" "─────────────" "───────────";
+  List.iter (fun n ->
+    let pi_est = estimer_pi n in
+    let err = abs_float (pi_est -. pi_ref) in
+    Printf.printf "%-12d %-14.8f %-12.8f\n" n pi_est err
+  ) [100; 1000; 10000; 100000; 1000000];
+  Printf.printf "\nPI_REF = %.10f\n" pi_ref;
+  Printf.printf "Convergence en O(1/√n).\n"
+        </textarea>
+        <div class="code-output"></div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:1.5rem">③ Vertex Cover 2-approché</h2>
+    <div class="lang-tabs">
+      <button class="lang-tab c-tab active" onclick="switchLang(this,'c3')">C99</button>
+      <button class="lang-tab ml-tab" onclick="switchLang(this,'c3')">OCaml</button>
+    </div>
+    <div class="lang-pane active" id="c3-c">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang lang-c">C99</span>
+          <span class="code-filename">vertex_cover.c</span>
+          <div class="code-actions">
+            <button class="btn btn-green" onclick="runCode(this)">▶ Simuler</button>
+            <button class="btn btn-blue" onclick="downloadCode(this,'.c')">↓ .c</button>
+            <button class="btn btn-dim" onclick="resetCode(this)">↺ Reset</button>
+          </div>
+        </div>
+        <textarea class="code-editor" spellcheck="false">
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+/* ── Vertex Cover 2-approché ──
+ *
+ * Problème : trouver le plus petit ensemble de sommets tel que
+ * chaque arête a au moins une extrémité dans l'ensemble.
+ * → NP-difficile.
+ *
+ * Algorithme 2-approché (garantie : |C| <= 2 × OPT) :
+ *   Tant qu'il existe une arête non couverte :
+ *     Prendre une arête (u, v) quelconque
+ *     Ajouter u et v à C
+ *     Marquer couvertes toutes les arêtes incidentes à u ou v
+ *
+ * Invariant : après chaque itération, les arêtes choisies forment
+ *   un couplage M (arêtes deux à deux disjointes en sommets).
+ *
+ * Preuve du ratio 2 :
+ *   |C| = 2|M|  et  OPT >= |M|  →  |C| <= 2 × OPT
+ */
+
+#define N 7  /* nombre de sommets */
+
+typedef struct { int u, v; } Arete;
+
+Arete aretes[] = {
+    {0,1}, {0,2}, {1,3}, {1,4}, {2,4}, {2,5}, {3,6}, {4,6}, {5,6}
+};
+int nb_aretes = 9;
+const char *noms[] = {"A","B","C","D","E","F","G"};
+
+int main(void) {
+    bool couvert[N] = {false};      /* sommets dans C */
+    bool arete_faite[9] = {false};  /* arêtes déjà traitées */
+
+    printf("=== Vertex Cover 2-approché ===\n");
+    printf("Graphe : %d sommets, %d arêtes\n\n", N, nb_aretes);
+
+    int etape = 1;
+    bool continuer = true;
+    while (continuer) {
+        continuer = false;
+        for (int i = 0; i < nb_aretes; i++) {
+            if (!arete_faite[i] &&
+                !couvert[aretes[i].u] && !couvert[aretes[i].v]) {
+                /* Prendre cette arête */
+                int u = aretes[i].u, v = aretes[i].v;
+                couvert[u] = couvert[v] = true;
+                printf("Étape %d : arête (%s,%s) → ajouter %s et %s\n",
+                       etape++, noms[u], noms[v], noms[u], noms[v]);
+                /* Marquer toutes les arêtes incidentes à u ou v */
+                for (int j = 0; j < nb_aretes; j++) {
+                    if (aretes[j].u == u || aretes[j].v == u ||
+                        aretes[j].u == v || aretes[j].v == v)
+                        arete_faite[j] = true;
+                }
+                continuer = true;
+                break; /* recommencer la recherche d'une arête non couverte */
+            }
+        }
+    }
+
+    printf("\nVertex Cover C = { ");
+    int taille_c = 0;
+    for (int i = 0; i < N; i++) {
+        if (couvert[i]) { printf("%s ", noms[i]); taille_c++; }
+    }
+    printf("}\n");
+    printf("|C| = %d  (garantie : <= 2 × OPT)\n", taille_c);
+
+    /* Vérification : toute arête est bien couverte */
+    bool ok = true;
+    for (int i = 0; i < nb_aretes; i++) {
+        if (!couvert[aretes[i].u] && !couvert[aretes[i].v]) { ok = false; break; }
+    }
+    printf("Vérification : %s\n", ok ? "✓ Cover valide" : "✗ Erreur !");
+    return 0;
+}
+        </textarea>
+        <div class="code-output"></div>
+      </div>
+    </div>
+    <div class="lang-pane" id="c3-ml">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang lang-ocaml">OCaml</span>
+          <span class="code-filename">vertex_cover.ml</span>
+          <div class="code-actions">
+            <button class="btn btn-green" onclick="runCode(this)">▶ Simuler</button>
+            <button class="btn btn-blue" onclick="downloadCode(this,'.ml')">↓ .ml</button>
+            <button class="btn btn-dim" onclick="resetCode(this)">↺ Reset</button>
+          </div>
+        </div>
+        <textarea class="code-editor" spellcheck="false">
+(* Vertex Cover 2-approché en OCaml
+ *
+ * Garantie : |C| <= 2 × OPT
+ * Invariant de boucle : les arêtes choisies forment un couplage.
+ * Complexité : O(V + E)
+ *)
+
+(* Graphe représenté par sa liste d'arêtes *)
+let noms = [| "A";"B";"C";"D";"E";"F";"G" |]
+let aretes = [| (0,1);(0,2);(1,3);(1,4);(2,4);(2,5);(3,6);(4,6);(5,6) |]
+let n = Array.length noms
+
+(* vertex_cover : (int * int) array -> int -> bool array
+ * Précondition : sommets indexés 0..n-1
+ * Postcondition : tout sommet de chaque arête est dans C ou couvert *)
+let vertex_cover aretes n =
+  let couvert = Array.make n false in
+  let arete_traitee = Array.make (Array.length aretes) false in
+  let etape = ref 1 in
+  let continuer = ref true in
+  while !continuer do
+    continuer := false;
+    let i = ref 0 in
+    while !i < Array.length aretes && not !continuer do
+      let (u, v) = aretes.(!i) in
+      if not arete_traitee.(!i) && not couvert.(u) && not couvert.(v) then begin
+        (* Ajouter u et v *)
+        couvert.(u) <- true; couvert.(v) <- true;
+        Printf.printf "Étape %d : arête (%s,%s) → ajouter %s et %s\n"
+          !etape noms.(u) noms.(v) noms.(u) noms.(v);
+        incr etape;
+        (* Retirer arêtes incidentes *)
+        Array.iteri (fun j (a, b) ->
+          if a = u || b = u || a = v || b = v then
+            arete_traitee.(j) <- true
+        ) aretes;
+        continuer := true
+      end;
+      incr i
+    done
+  done;
+  couvert
+
+let () =
+  Printf.printf "=== Vertex Cover 2-approché ===\n";
+  Printf.printf "Graphe : %d sommets, %d arêtes\n\n" n (Array.length aretes);
+  let c = vertex_cover aretes n in
+  Printf.printf "\nVertex Cover C = { ";
+  let taille = Array.fold_left (fun acc b -> if b then acc+1 else acc) 0 c in
+  Array.iteri (fun i b -> if b then Printf.printf "%s " noms.(i)) c;
+  Printf.printf "}\n|C| = %d  (garantie : <= 2 × OPT)\n" taille;
+  (* Vérification *)
+  let valide = Array.for_all (fun (u,v) -> c.(u) || c.(v)) aretes in
+  Printf.printf "Vérification : %s\n" (if valide then "✓ Cover valide" else "✗ Erreur !")
+        </textarea>
+        <div class="code-output"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ 05 QCM ══════════ -->
+<div class="section" id="sec-4" data-idx="4">
+  <div class="sec-header" onclick="toggleSection(4)">
+    <span class="sec-num">05</span>
+    <span class="sec-title">Auto-évaluation — Questions de cours</span>
+    <span class="sec-arrow" id="arr-4">▼</span>
+  </div>
+  <div class="sec-body" id="body-4">
+    <div class="qcm-wrap" id="qcm"></div>
+  </div>
+</div>
+
+<!-- ══════════ 06 CONTACT ══════════ -->
+<div class="section" id="sec-5" data-idx="5">
+  <div class="sec-header" onclick="toggleSection(5)">
+    <span class="sec-num">06</span>
+    <span class="sec-title">Contact &amp; Prise de rendez-vous</span>
+    <span class="sec-arrow" id="arr-5">▼</span>
+  </div>
+  <div class="sec-body" id="body-5">
+    <div class="contact-grid">
+      <div class="contact-card">
+        <span class="contact-icon">📋</span>
+        <div class="contact-title">Formulaire de retour</div>
+        <div class="contact-sub">Avis, erreur ou question.</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=000000&bgcolor=ffffff&data=https%3A%2F%2Fdocs.google.com%2Fforms%2Fd%2Fe%2F1FAIpQLSfiOvJG1wicFQY8EQufqy5YxGgTPSFPxdyb-OAtk95SUGxWFA%2Fviewform" alt="QR Forms">
+        <a class="contact-link" href="https://docs.google.com/forms/d/e/1FAIpQLSfiOvJG1wicFQY8EQufqy5YxGgTPSFPxdyb-OAtk95SUGxWFA/viewform" target="_blank">Google Forms ↗</a>
+      </div>
+      <div class="contact-card">
+        <span class="contact-icon">🎓</span>
+        <div class="contact-title">Élèves — 30 min</div>
+        <div class="contact-sub">Créneau individuel.</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=000000&bgcolor=ffffff&data=https%3A%2F%2Fcalendly.com%2Fdidaskalosmanthanon%2F30min" alt="QR Calendly">
+        <a class="contact-link" href="https://calendly.com/didaskalosmanthanon/30min" target="_blank">Calendly ↗</a>
+      </div>
+      <div class="contact-card">
+        <span class="contact-icon">🏫</span>
+        <div class="contact-title">Professeurs — 45 min</div>
+        <div class="contact-sub">Formation, collaboration.</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=000000&bgcolor=ffffff&data=https%3A%2F%2Fcalendly.com%2Fdidaskalosmanthanon%2Fappel-pro-formation-ou-collaboration-45-min" alt="QR profs">
+        <a class="contact-link" href="https://calendly.com/didaskalosmanthanon/appel-pro-formation-ou-collaboration-45-min" target="_blank">Calendly ↗</a>
+      </div>
+      <div class="contact-card">
+        <span class="contact-icon">👨‍👩‍👧</span>
+        <div class="contact-title">Parents — 15 min</div>
+        <div class="contact-sub">Présentation & suivi.</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=000000&bgcolor=ffffff&data=https%3A%2F%2Fcalendly.com%2Fdidaskalosmanthanon%2Fpoint-parents-presentation-de-l-outil-15-min" alt="QR parents">
+        <a class="contact-link" href="https://calendly.com/didaskalosmanthanon/point-parents-presentation-de-l-outil-15-min" target="_blank">Calendly ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+/* ═══════════ SECTIONS ═══════════ */
+const seen = new Set();
+function toggleSection(idx) {
+  const body = document.getElementById('body-' + idx);
+  const arr  = document.getElementById('arr-' + idx);
+  const sec  = document.getElementById('sec-' + idx);
+  const hdr  = sec.querySelector('.sec-header');
+  const isOpen = body.classList.contains('open');
+  if (!isOpen) {
+    body.classList.add('open'); arr.classList.add('open'); hdr.classList.add('open');
+    sec.classList.add('seen'); seen.add(idx);
+    document.getElementById('seen-count').textContent = seen.size;
+    if (idx === 1) initViz();
+    if (idx === 4) initQCM();
+  } else {
+    body.classList.remove('open'); arr.classList.remove('open'); hdr.classList.remove('open');
+  }
+}
+function openSection(idx) {
+  const body = document.getElementById('body-' + idx);
+  if (!body.classList.contains('open')) toggleSection(idx);
+  document.getElementById('sec-' + idx).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+window.addEventListener('scroll', () => {
+  const d = document.documentElement;
+  document.getElementById('progress-bar').style.width = (d.scrollTop / (d.scrollHeight - d.clientHeight) * 100) + '%';
+});
+
+/* ═══════════ VIZ SWITCH ═══════════ */
+function showViz(name) {
+  document.querySelectorAll('.viz-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('vp-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'pi') piReset();
+  if (name === 'qsort') qsReset();
+  if (name === 'vc') { vcGenerate(); }
+}
+
+/* ═══════════ MONTE-CARLO PI ═══════════ */
+let piIn = 0, piTotal = 0, piAuto = null;
+
+function piDraw(newPoints) {
+  const canvas = document.getElementById('pi-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const S = Math.min(W, H);
+
+  if (piTotal === 0) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#243040';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, 0, S, S);
+    ctx.beginPath();
+    ctx.arc(0, 0, S, 0, Math.PI / 2);
+    ctx.strokeStyle = 'rgba(167,139,250,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  for (const [x, y, inside] of newPoints) {
+    const px = x * S, py = (1 - y) * S;
+    ctx.beginPath();
+    ctx.arc(px, py, 1.8, 0, 2 * Math.PI);
+    ctx.fillStyle = inside ? 'rgba(74,242,161,0.7)' : 'rgba(240,135,90,0.5)';
+    ctx.fill();
+  }
+}
+
+function piStep() {
+  const batch = parseInt(document.getElementById('pi-batch').value);
+  const pts = [];
+  for (let i = 0; i < batch; i++) {
+    const x = Math.random(), y = Math.random();
+    const inside = x * x + y * y <= 1;
+    if (inside) piIn++;
+    piTotal++;
+    pts.push([x, y, inside]);
+  }
+  piDraw(pts);
+  const est = 4 * piIn / piTotal;
+  const err = Math.abs(est - Math.PI);
+  document.getElementById('pi-val').textContent = est.toFixed(6);
+  document.getElementById('pi-in').textContent = piIn;
+  document.getElementById('pi-total').textContent = piTotal;
+  document.getElementById('pi-err').textContent = err.toFixed(6);
+}
+
+function piReset() {
+  piIn = 0; piTotal = 0;
+  if (piAuto) { clearInterval(piAuto); piAuto = null; document.getElementById('pi-auto-btn').textContent = '⟳ Auto'; }
+  const canvas = document.getElementById('pi-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const S = Math.min(canvas.width, canvas.height);
+  ctx.beginPath(); ctx.arc(0, 0, S, 0, Math.PI / 2);
+  ctx.strokeStyle = 'rgba(167,139,250,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = '#243040'; ctx.lineWidth = 1; ctx.strokeRect(0, 0, S, S);
+  document.getElementById('pi-val').textContent = '—';
+  document.getElementById('pi-in').textContent = '0';
+  document.getElementById('pi-total').textContent = '0';
+  document.getElementById('pi-err').textContent = '—';
+}
+
+function piToggleAuto() {
+  const btn = document.getElementById('pi-auto-btn');
+  if (piAuto) {
+    clearInterval(piAuto); piAuto = null; btn.textContent = '⟳ Auto';
+  } else {
+    piAuto = setInterval(piStep, 80); btn.textContent = '⏹ Stop';
+  }
+}
+
+/* ═══════════ QUICKSORT VISUALISER ═══════════ */
+let qsArr = [], qsSteps = [], qsStepIdx = 0, qsPlaying = false;
+
+function qsReset() {
+  const n = parseInt(document.getElementById('qs-n').value);
+  qsArr = Array.from({ length: n }, (_, i) => i + 1).sort(() => Math.random() - .5);
+  qsSteps = []; qsStepIdx = 0; qsPlaying = false;
+  qsDraw(qsArr, [], -1);
+  document.getElementById('qs-info').textContent = 'Tableau aléatoire généré. Cliquez ▶ Trier.';
+  document.getElementById('qs-stats').innerHTML = '';
+}
+
+function qsWorstCase() {
+  const n = parseInt(document.getElementById('qs-n').value);
+  qsArr = Array.from({ length: n }, (_, i) => i + 1);
+  qsSteps = []; qsStepIdx = 0;
+  qsDraw(qsArr, [], -1);
+  document.getElementById('qs-info').textContent = 'Tableau trié (pire cas déterministe). Cliquez ▶ Trier.';
+  document.getElementById('qs-stats').innerHTML = '';
+}
+
+function qsDraw(arr, highlighted, pivot) {
+  const canvas = document.getElementById('qs-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H);
+  const n = arr.length;
+  const barW = Math.floor(W / n) - 1;
+  const maxVal = Math.max(...arr);
+  for (let i = 0; i < n; i++) {
+    const barH = Math.floor((arr[i] / maxVal) * (H - 20));
+    const x = i * (barW + 1);
+    const y = H - barH;
+    if (i === pivot) ctx.fillStyle = '#f7c94a';
+    else if (highlighted.includes(i)) ctx.fillStyle = 'rgba(167,139,250,0.8)';
+    else ctx.fillStyle = 'rgba(74,242,161,0.4)';
+    ctx.fillRect(x, y, barW, barH);
+  }
+}
+
+function qsCollectSteps(arr, g, d, steps, comps) {
+  if (g >= d) return;
+  // random pivot
+  const pidx = g + Math.floor(Math.random() * (d - g + 1));
+  const copy = [...arr];
+  [copy[pidx], copy[d]] = [copy[d], copy[pidx]];
+  steps.push({ arr: [...copy], pivot: d, hl: [g, d] });
+
+  const pivot = copy[d];
+  let i = g - 1;
+  for (let j = g; j < d; j++) {
+    comps.count++;
+    if (copy[j] <= pivot) {
+      i++;
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+      steps.push({ arr: [...copy], pivot: i, hl: [i, j] });
+    }
+  }
+  [copy[i + 1], copy[d]] = [copy[d], copy[i + 1]];
+  steps.push({ arr: [...copy], pivot: i + 1, hl: [i + 1] });
+
+  // recurse
+  qsCollectSteps(copy, g, i, steps, comps);
+  qsCollectSteps(copy, i + 2, d, steps, comps);
+  arr.splice(0, arr.length, ...copy);
+}
+
+async function qsStart() {
+  if (qsPlaying) return;
+  qsPlaying = true;
+  const arr = [...qsArr];
+  const steps = [];
+  const comps = { count: 0 };
+  qsCollectSteps(arr, 0, arr.length - 1, steps, comps);
+
+  document.getElementById('qs-info').textContent = `Tri en cours… ${steps.length} étapes`;
+  for (const step of steps) {
+    qsDraw(step.arr, step.hl, step.pivot);
+    await new Promise(r => setTimeout(r, 60));
+    if (!qsPlaying) break;
+  }
+  qsDraw(arr, [], -1);
+  const n = qsArr.length;
+  const expected = Math.round(2 * n * Math.log2(n));
+  document.getElementById('qs-info').textContent = `✓ Trié ! Comparaisons : ${comps.count} | Espérance ≈ ${expected} | Étapes : ${steps.length}`;
+  const pct = Math.round(comps.count / expected * 100);
+  document.getElementById('qs-stats').innerHTML = `
+    <div class="stat-row"><span class="stat-label">Comparaisons réelles</span>
+    <div class="stat-bar-wrap"><div class="stat-bar" style="width:${Math.min(pct,120)}%;background:${comps.count <= expected ? 'var(--accent4)' : 'var(--accent3)'}"></div></div>
+    <span class="stat-val">${comps.count}</span></div>
+    <div class="stat-row"><span class="stat-label">Espérance O(n log n)</span>
+    <div class="stat-bar-wrap"><div class="stat-bar" style="width:80%;background:var(--accent)"></div></div>
+    <span class="stat-val">≈ ${expected}</span></div>
+    <div class="stat-row"><span class="stat-label">Pire cas O(n²)</span>
+    <div class="stat-bar-wrap"><div class="stat-bar" style="width:100%;background:var(--bad, #f77e7e)"></div></div>
+    <span class="stat-val">${n*(n-1)/2}</span></div>
+  `;
+  qsPlaying = false;
+}
+
+/* ═══════════ VERTEX COVER ═══════════ */
+let vcGraph = null, vcCover = [], vcEdgesLeft = [], vcDone = false;
+
+function vcGenerate() {
+  const nv = 8;
+  const positions = [];
+  for (let i = 0; i < nv; i++) {
+    const angle = (2 * Math.PI * i) / nv - Math.PI / 2;
+    positions.push({ x: 230 + 130 * Math.cos(angle), y: 155 + 130 * Math.sin(angle) });
+  }
+  // random edges
+  const edges = [];
+  for (let i = 0; i < nv; i++) {
+    for (let j = i + 1; j < nv; j++) {
+      if (Math.random() < 0.4) edges.push([i, j]);
+    }
+  }
+  // ensure connected-ish
+  for (let i = 0; i < nv - 1; i++) {
+    if (!edges.some(([a, b]) => (a === i && b === i + 1) || (a === i + 1 && b === i))) {
+      if (Math.random() < 0.6) edges.push([i, i + 1]);
+    }
+  }
+  vcGraph = { nv, positions, edges };
+  vcCover = new Array(nv).fill(false);
+  vcEdgesLeft = edges.map((_, i) => i);
+  vcDone = false;
+  vcDrawGraph([], -1, -1);
+  document.getElementById('vc-info').textContent = `Graphe : ${nv} sommets, ${edges.length} arêtes. Cliquez → Étape.`;
+}
+
+function vcDrawGraph(cover, pivotU, pivotV) {
+  const canvas = document.getElementById('vc-canvas');
+  if (!canvas || !vcGraph) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const { nv, positions, edges } = vcGraph;
+  const coveredEdges = new Set();
+  for (let ei = 0; ei < edges.length; ei++) {
+    const [a, b] = edges[ei];
+    const covered = cover[a] || cover[b];
+    if (!vcEdgesLeft.includes(ei)) coveredEdges.add(ei);
+    ctx.beginPath();
+    ctx.moveTo(positions[a].x, positions[a].y);
+    ctx.lineTo(positions[b].x, positions[b].y);
+    ctx.strokeStyle = covered ? 'rgba(74,242,161,0.2)' : (vcEdgesLeft.includes(ei) ? '#4af2a1' : '#243040');
+    ctx.lineWidth = covered ? 1 : 1.8;
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < nv; i++) {
+    ctx.beginPath();
+    ctx.arc(positions[i].x, positions[i].y, 18, 0, 2 * Math.PI);
+    let fill = '#1a2230';
+    let stroke = '#243040';
+    if (i === pivotU || i === pivotV) { fill = 'rgba(247,201,74,.25)'; stroke = '#f7c94a'; }
+    else if (cover[i]) { fill = 'rgba(167,139,250,.2)'; stroke = '#a78bfa'; }
+    ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 2;
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = cover[i] ? '#a78bfa' : '#c9d8ec';
+    ctx.font = '12px DM Mono, monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String.fromCharCode(65 + i), positions[i].x, positions[i].y);
+  }
+}
+
+function vcStep() {
+  if (!vcGraph || vcDone) return;
+  const { edges } = vcGraph;
+  let chosen = -1;
+  for (const ei of vcEdgesLeft) {
+    const [a, b] = edges[ei];
+    if (!vcCover[a] && !vcCover[b]) { chosen = ei; break; }
+  }
+  if (chosen === -1) {
+    vcDone = true;
+    const sz = vcCover.filter(Boolean).length;
+    document.getElementById('vc-info').textContent = `✓ Cover terminé ! |C| = ${sz} sommets (garantie ≤ 2×OPT).`;
+    vcDrawGraph(vcCover, -1, -1);
+    return;
+  }
+  const [u, v] = edges[chosen];
+  vcCover[u] = vcCover[v] = true;
+  vcEdgesLeft = vcEdgesLeft.filter(ei => {
+    const [a, b] = edges[ei];
+    return !(a === u || b === u || a === v || b === v);
+  });
+  vcDrawGraph(vcCover, u, v);
+  const sz = vcCover.filter(Boolean).length;
+  document.getElementById('vc-info').textContent =
+    `Arête (${String.fromCharCode(65+u)},${String.fromCharCode(65+v)}) → ajout des sommets ${String.fromCharCode(65+u)} et ${String.fromCharCode(65+v)}. |C| = ${sz}`;
+}
+
+function vcAll() {
+  if (!vcGraph) return;
+  while (!vcDone) vcStep();
+}
+function vcReset() { if (vcGraph) { vcCover = new Array(vcGraph.nv).fill(false); vcEdgesLeft = vcGraph.edges.map((_, i) => i); vcDone = false; vcDrawGraph([], -1, -1); document.getElementById('vc-info').textContent = 'Reset. Cliquez → Étape.'; } }
+
+function initViz() {
+  setTimeout(() => { piReset(); qsReset(); vcGenerate(); }, 50);
+}
+
+/* ═══════════ LANG TABS ═══════════ */
+function switchLang(btn, prefix) {
+  const parent = btn.closest('.sec-body');
+  btn.parentElement.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const isC = btn.classList.contains('c-tab');
+  const c = parent.querySelector('#' + prefix + '-c');
+  const ml = parent.querySelector('#' + prefix + '-ml');
+  if (c) c.classList.toggle('active', isC);
+  if (ml) ml.classList.toggle('active', !isC);
+}
+
+/* ═══════════ CODE ═══════════ */
+const SIMS = {
+  'quicksort_lv.c': `=== Tri rapide RANDOMISÉ (Las Vegas) ===
+Avant : 5 2 9 1 7 3 8 4 6 0 11 10 
+Après : 0 1 2 3 4 5 6 7 8 9 10 11 
+Comparaisons : 34
+
+=== Tri rapide DÉTERMINISTE (dernier élément) ===
+Avant : 5 2 9 1 7 3 8 4 6 0 11 10 
+Après : 0 1 2 3 4 5 6 7 8 9 10 11 
+Comparaisons : 31
+
+=== Cas pathologique : tableau TRIÉ (n=12) ===
+Randomisé  — comparaisons : 28  (O(n log n) en esp.)
+Déterministe — comparaisons : 66  (O(n²) = 66 au pire)`,
+  'quicksort_lv.ml': `=== Tri rapide RANDOMISÉ (Las Vegas) ===
+Avant : 5 2 9 1 7 3 8 4 6 0 11 10 
+Après : 0 1 2 3 4 5 6 7 8 9 10 11 
+
+=== Tri rapide DÉTERMINISTE ===
+Résultat : 0 1 2 3 4 5 6 7 8 9 10 11 
+
+=== Cas pathologique : tableau trié ===
+Randomisé  : 0 1 2 3 4 5 6 7 8 9 10 11 
+Déterministe : 0 1 2 3 4 5 6 7 8 9 10 11 
+(Le randomisé reste O(n log n) en espérance)`,
+  'monte_carlo_pi.c': `n            Estimation π   Erreur abs.
+───────────  ─────────────  ───────────
+100          3.12000000     0.02159265
+1000         3.14400000     0.00240735
+10000        3.14320000     0.00160735
+100000       3.14168000     0.00008735
+1000000      3.14159200     0.00000065
+10000000     3.14157560     0.00001705
+
+PI_REF = 3.1415926536
+Note : convergence en O(1/√n) — pour 1 chiffre de plus, n × 100.`,
+  'monte_carlo_pi.ml': `n            Estimation π   Erreur abs.
+───────────  ─────────────  ───────────
+100          3.16000000     0.01840735
+1000         3.14000000     0.00159265
+10000        3.14480000     0.00320735
+100000       3.14128000     0.00031265
+1000000      3.14157200     0.00002065
+
+PI_REF = 3.1415926536
+Convergence en O(1/√n).`,
+  'vertex_cover.c': `=== Vertex Cover 2-approché ===
+Graphe : 7 sommets, 9 arêtes
+
+Étape 1 : arête (A,B) → ajouter A et B
+Étape 2 : arête (C,E) → ajouter C et E
+Étape 3 : arête (D,G) → ajouter D et G
+
+Vertex Cover C = { A B C D E G }
+|C| = 6  (garantie : <= 2 × OPT)
+Vérification : ✓ Cover valide`,
+  'vertex_cover.ml': `=== Vertex Cover 2-approché ===
+Graphe : 7 sommets, 9 arêtes
+
+Étape 1 : arête (A,B) → ajouter A et B
+Étape 2 : arête (C,E) → ajouter C et E
+Étape 3 : arête (D,G) → ajouter D et G
+
+Vertex Cover C = { A B C D E G }
+|C| = 6  (garantie : <= 2 × OPT)
+Vérification : ✓ Cover valide`,
+};
+
+function runCode(btn) {
+  const block = btn.closest('.code-block');
+  const fn = block.querySelector('.code-filename').textContent.trim();
+  const out = block.querySelector('.code-output');
+  out.classList.remove('error'); out.classList.add('visible');
+  out.textContent = SIMS[fn] || '(Simulation non disponible — compilez dans un terminal)';
+}
+function downloadCode(btn, ext) {
+  const block = btn.closest('.code-block');
+  const code = block.querySelector('.code-editor').value;
+  const fn = block.querySelector('.code-filename').textContent.trim() || ('code' + ext);
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([code], {type:'text/plain'})), download: fn });
+  a.click();
+}
+function resetCode(btn) {
+  const block = btn.closest('.code-block');
+  const ta = block.querySelector('.code-editor');
+  ta.value = ta.getAttribute('data-default');
+  const out = block.querySelector('.code-output');
+  out.classList.remove('visible'); out.textContent = '';
+}
+document.querySelectorAll('.code-editor').forEach(ta => ta.setAttribute('data-default', ta.value));
+
+/* ═══════════ QCM ═══════════ */
+const QUESTIONS = [
+  { q: "Quelle propriété caractérise un algorithme Las Vegas ?", opts: ["Temps borné, résultat peut être incorrect","Toujours correct, temps aléatoire","Toujours incorrect","Temps exponentiel garanti"], ans: 1, exp: "Las Vegas : résultat toujours correct, mais le temps d'exécution est une variable aléatoire bornée en espérance." },
+  { q: "Quelle est la complexité en espérance du tri rapide randomisé ?", opts: ["O(n)","O(n²)","O(n log n)","O(log n)"], ans: 2, exp: "Avec un pivot aléatoire, la complexité en espérance est O(n log n) quelle que soit l'entrée." },
+  { q: "Dans la méthode de Monte-Carlo pour estimer π, si on passe de n à 100n points, l'erreur est divisée par :", opts: ["100","10","2","√100 = 10"], ans: 3, exp: "La convergence est en O(1/√n). Multiplier n par 100 divise l'erreur par √100 = 10." },
+  { q: "Un algorithme Monte-Carlo se distingue de Las Vegas par :", opts: ["Il n'utilise pas de hasard","Son résultat peut être incorrect avec une probabilité ε","Sa complexité est toujours O(n²)","Il nécessite un oracle"], ans: 1, exp: "Monte-Carlo : temps borné mais résultat potentiellement incorrect. On peut réduire ε en répétant l'algorithme." },
+  { q: "L'algorithme glouton de vertex cover 2-approché garantit :", opts: ["|C| = OPT","|C| ≤ 2 × OPT","|C| ≤ log(n) × OPT","|C| ≤ n/2"], ans: 1, exp: "Le couplage M construit vérifie |C| = 2|M| et OPT ≥ |M|, donc |C| ≤ 2 × OPT." },
+  { q: "Pourquoi cherche-t-on des algorithmes d'approximation pour les problèmes NP-difficiles ?", opts: ["Parce qu'ils sont plus simples à implémenter","Parce qu'on ne sait pas (sous P≠NP) résoudre ces problèmes exactement en temps polynomial","Parce que les solutions exactes sont toujours fausses","Parce que les approximations sont plus précises"], ans: 1, exp: "Sous l'hypothèse P ≠ NP, les problèmes NP-difficiles n'admettent pas d'algorithme polynomial exact. On se contente d'une approximation avec garantie de qualité." },
+  { q: "Comment réduire la probabilité d'erreur d'un algorithme Monte-Carlo ?", opts: ["Augmenter la taille de l'entrée","Répéter l'algorithme k fois indépendamment","Utiliser un meilleur ordinateur","Changer le générateur aléatoire"], ans: 1, exp: "En répétant k fois et en prenant le résultat majoritaire, la probabilité d'erreur passe de ε à ε^k." },
+  { q: "Le pire cas du tri rapide déterministe (pivot = premier élément) sur un tableau trié est :", opts: ["O(n log n)","O(n)","O(n²)","O(log n)"], ans: 2, exp: "Sur un tableau trié, le pivot = premier élément crée des partitions déséquilibrées (0 éléments / n-1 éléments) à chaque étape → O(n²)." },
+  { q: "Un algorithme est dit ρ-approché pour un problème de minimisation si :", opts: ["A(I) = OPT(I)","A(I) / OPT(I) ≤ ρ","OPT(I) / A(I) ≤ ρ","A(I) - OPT(I) ≤ ρ"], ans: 1, exp: "Le rapport d'approximation ρ ≥ 1 borne le ratio entre la solution approchée et l'optimale. Plus ρ est proche de 1, meilleure est l'approximation." },
+  { q: "Le problème du voyageur de commerce (TSP) général peut-il être approché à ratio constant en temps polynomial ?", opts: ["Oui, toujours","Oui, si les distances sont euclidiennes","Non, sauf si P = NP","Non, jamais même si P = NP"], ans: 2, exp: "Le TSP général (sans inégalité triangulaire) ne peut être approché à ratio constant en temps polynomial sauf si P = NP (résultat de Sahni et Gonzalez, 1976)." },
+];
+
+function initQCM() {
+  const wrap = document.getElementById('qcm');
+  if (!wrap || wrap.innerHTML !== '') return;
+  let shuffled = [...QUESTIONS].sort(() => Math.random() - .5);
+  let current = 0, score = 0, answered = [];
+
+  function render() {
+    if (current >= shuffled.length) {
+      const pct = Math.round(score / shuffled.length * 100);
+      wrap.innerHTML = `<div class="qcm-progress">Score final</div>
+        <div style="font-family:var(--cond);font-size:2rem;color:var(--accent);margin:.5rem 0">${score} / ${shuffled.length}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${pct}%"></div></div>
+        <div style="font-family:var(--mono);font-size:.8rem;color:var(--text-dim);margin-bottom:1rem">${pct}%</div>
+        <button class="btn btn-purple" onclick="document.getElementById('qcm').innerHTML='';initQCM()">🔀 Nouveau QCM</button>`;
+      return;
+    }
+    const q = shuffled[current];
+    const done = answered[current] !== undefined;
+    const optsHTML = q.opts.map((o, i) => {
+      let cls = '';
+      if (done) { if (i === q.ans) cls = 'correct'; else if (i === answered[current] && i !== q.ans) cls = 'wrong'; }
+      return `<label class="qcm-option ${cls}"><input type="radio" name="q" value="${i}" ${done?'disabled':''} ${done&&i===answered[current]?'checked':''}> ${o}</label>`;
+    }).join('');
+    wrap.innerHTML = `<div class="qcm-progress">${current+1} / ${shuffled.length} — Score : ${score}</div>
+      <div class="qcm-q"><p>${q.q}</p>${optsHTML}${done?`<div class="qcm-explain">${q.exp}</div>`:''}</div>
+      <div class="qcm-controls">${!done?`<button class="btn btn-purple" onclick="submitAns()">Valider</button>`:''}${done?`<button class="btn btn-blue" onclick="nextQ()">${current<shuffled.length-1?'Suivant →':'Résultat'}</button>`:''}</div>`;
+  }
+  window.submitAns = function() {
+    const sel = document.querySelector('input[name="q"]:checked');
+    if (!sel) return;
+    const v = parseInt(sel.value);
+    answered[current] = v;
+    if (v === shuffled[current].ans) score++;
+    render();
+  };
+  window.nextQ = function() { current++; render(); };
+  render();
+}
+</script>
+</body>
+</html>
